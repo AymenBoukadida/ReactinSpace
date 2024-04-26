@@ -16,11 +16,12 @@ WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 YELLOW = (255, 255, 0)
+BLUE = (0,0,255)
 
 BORDER = pygame.Rect(WIDTH//2 - 5, 0, 10, HEIGHT)
 
 BULLET_HIT_SOUND = pygame.mixer.Sound('Assets/Grenade+1.mp3')
-BULLET_FIRE_SOUND = pygame.mixer.Sound('Assets/Gun+Silencer.mp3')
+BULLET_FIRE_SOUND = pygame.mixer.Sound('Assets/PewSoundEffect.mp3')
 
 WINNER_FONT = pygame.font.SysFont('comicsans', 100)
 SCORE_FONT = pygame.font.SysFont('comicsans', 30)
@@ -55,7 +56,7 @@ class Particle:
         self.color = color
         self.radius = random.randint(2, 5)
         self.vel = vel
-        self.life = 20  # Number of frames the particle will exist
+        self.life = 20  
 
     def draw(self, win):
         pygame.draw.circle(win, self.color, (self.x, self.y), self.radius)
@@ -70,9 +71,9 @@ def draw_window(red, yellow, red_bullets, yellow_bullets, red_score, yellow_scor
     pygame.draw.rect(WIN, WHITE, BORDER)
 
     red_score_text = SCORE_FONT.render(
-        "Score: " + str(red_score), 1, WHITE)
+        "Score: " + str(red_score), 1, RED)
     yellow_score_text = SCORE_FONT.render(
-        "Score: " + str(yellow_score), 1, WHITE)
+        "Score: " + str(yellow_score), 1, YELLOW)
     WIN.blit(red_score_text, (WIDTH - red_score_text.get_width() - 10, 40))
     WIN.blit(yellow_score_text, (10, 40))
 
@@ -145,6 +146,8 @@ def move_particles(particles):
             particles.remove(particle)
 
 def game_loop():
+    pygame.mixer.music.load('Assets/background_music.mp3')
+    pygame.mixer.music.play(-1)
     yellow = Spaceship(10, HEIGHT//2, YELLOW_SPACESHIP)
     red = Spaceship(WIDTH -50, HEIGHT//2, RED_SPACESHIP)
 
@@ -160,6 +163,9 @@ def game_loop():
 
     particles = []
 
+    winner_text_font = pygame.font.SysFont('comicsans', 60)
+    winner_text = ""
+
     clock = pygame.time.Clock()
     run = True
     while run:
@@ -168,7 +174,7 @@ def game_loop():
             if event.type == pygame.QUIT:
                 run = False
             if event.type == TARGET_HIT:
-                target.y = random.randint(0, HEIGHT)
+                target.y = random.randint(10, HEIGHT-10)
 
         keys_pressed = pygame.key.get_pressed()
 
@@ -178,19 +184,41 @@ def game_loop():
         if keys_pressed[pygame.K_e] and len(yellow_bullets) < MAX_BULLETS:
             bullet = pygame.Rect(yellow.x + yellow.width, yellow.y + yellow.height//2 - 2, 10, 5)
             yellow_bullets.append(bullet)
-            #BULLET_FIRE_SOUND.play()
+            BULLET_FIRE_SOUND.play()
 
         if keys_pressed[pygame.K_p] and len(red_bullets) < MAX_BULLETS:
             bullet = pygame.Rect(red.x, red.y + red.height//2 - 2, 10, 5)
             red_bullets.append(bullet)
-            #BULLET_FIRE_SOUND.play()
+            BULLET_FIRE_SOUND.play()
 
         handle_bullets(yellow_bullets, red_bullets, yellow, red, target, scores, particles)
         move_particles(particles)
 
         draw_window(red, yellow, red_bullets, yellow_bullets,  scores[0], scores[1], target, particles)
 
-    pygame.quit()
+        if scores[0] >= 1000:
+            winner_text = "Red wins! Press R to restart."
+            run = False
+        elif scores[1] >= 1000:
+            winner_text = "Yellow wins! Press R to restart."
+            run = False
+
+    draw_winner_text(winner_text)
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:
+                    game_loop()
+
+def draw_winner_text(text):
+    winner_text_font = pygame.font.SysFont('comicsans', 60)
+    text_surface = winner_text_font.render(text, True, BLUE)
+    text_rect = text_surface.get_rect(center=(WIDTH//2, HEIGHT//2))
+    WIN.blit(text_surface, text_rect)
+    pygame.display.update()
 
 if __name__ == "__main__":
     YELLOW_SPACESHIP_IMAGE = pygame.image.load(os.path.join('Assets', 'spaceship_yellow.png'))
